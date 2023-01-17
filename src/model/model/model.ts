@@ -4,7 +4,6 @@ import {
   ModelAttributes,
   FindOptions,
   BuildOptions,
-  Utils,
 } from 'sequelize';
 import { capitalize } from '../../shared/string';
 import { inferAlias } from '../../associations/alias-inference/alias-inference-service';
@@ -16,7 +15,7 @@ import { AssociationActionOptions } from './association/association-action-optio
 import { AssociationCreateOptions } from './association/association-create-options';
 import { Repository } from '../../sequelize/repository/repository';
 
-export type ModelType<TCreationAttributes extends {}, TModelAttributes extends {}> = new (
+export type ModelType<TCreationAttributes, TModelAttributes> = new (
   values?: TCreationAttributes,
   options?: any
 ) => Model<TModelAttributes, TCreationAttributes>;
@@ -24,7 +23,9 @@ export type ModelCtor<M extends Model = Model> = Repository<M>;
 export type ModelStatic<M extends Model = Model> = { new (): M };
 
 export type $GetType<T> = NonNullable<T> extends any[] ? NonNullable<T> : NonNullable<T> | null;
-
+export interface ModelObject {
+  [key: string]: ModelCtor | Model;
+}
 export abstract class Model<
   TModelAttributes extends {} = any,
   TCreationAttributes extends {} = TModelAttributes
@@ -49,7 +50,7 @@ export abstract class Model<
     return super.init<MS, M>(attributes, options);
   }
 
-  constructor(values?: Utils.MakeNullishOptional<TCreationAttributes>, options?: BuildOptions) {
+  constructor(values?: TCreationAttributes, options?: BuildOptions) {
     if (!new.target.isInitialized) {
       throw new ModelNotInitializedError(new.target, `${new.target.name} cannot be instantiated.`);
     }
