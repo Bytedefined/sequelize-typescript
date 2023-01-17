@@ -10,10 +10,10 @@ import { ModelType } from '../../model/model/model';
 import { ThroughOptions } from '../through/through-options';
 
 export class BelongsToManyAssociation<
-  TCreationAttributes extends {},
-  TModelAttributes extends {},
-  TCreationAttributesThrough extends {},
-  TModelAttributesThrough extends {}
+  TCreationAttributes,
+  TModelAttributes,
+  TCreationAttributesThrough,
+  TModelAttributesThrough
 > extends BaseAssociation<TCreationAttributes, TModelAttributes> {
   constructor(
     associatedClassGetter: ModelClassGetter<TCreationAttributes, TModelAttributes>,
@@ -33,7 +33,7 @@ export class BelongsToManyAssociation<
     const options: BelongsToManyOptions<TCreationAttributesThrough, TModelAttributesThrough> = {
       ...this.options,
     };
-    const associatedClass = this.getAssociatedClass();
+    const associatedClass = this.getAssociatedClass(sequelize.getModelObject());
     const throughOptions = this.getThroughOptions(sequelize);
 
     const throughModel =
@@ -60,7 +60,7 @@ export class BelongsToManyAssociation<
       typeof through === 'object' ? { ...through } : ({} as any);
 
     if (typeof throughModel === 'function') {
-      const throughModelClass = sequelize.model(throughModel());
+      const throughModelClass = sequelize.model(throughModel(sequelize.getModelObject()));
       if (!throughModelClass.isInitialized) {
         throw new ModelNotInitializedError(throughModelClass, 'Association cannot be resolved.');
       }
