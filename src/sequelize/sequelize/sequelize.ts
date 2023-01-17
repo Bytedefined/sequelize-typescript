@@ -2,7 +2,7 @@ import { InitOptions, Sequelize as OriginSequelize } from 'sequelize';
 import { ModelNotInitializedError } from '../../model/shared/model-not-initialized-error';
 import { ModelMatch, SequelizeOptions } from './sequelize-options';
 import { getModels, prepareArgs } from './sequelize-service';
-import { Model, ModelCtor, ModelType } from '../../model/model/model';
+import { Model, ModelCtor, ModelType, ModelObject } from '../../model/model/model';
 import { getModelName, getOptions } from '../../model/shared/model-service';
 import { resolveScopes } from '../../scopes/scope-service';
 import { installHooks } from '../../hooks/shared/hooks-service';
@@ -10,7 +10,6 @@ import { getAssociations } from '../../associations/shared/association-service';
 import { getAttributes } from '../../model/column/attribute-service';
 import { getIndexes } from '../../model/index/index-service';
 import { Repository } from '../..';
-import { snakeCase } from 'lodash';
 
 export class Sequelize extends OriginSequelize {
   options: SequelizeOptions;
@@ -60,7 +59,16 @@ export class Sequelize extends OriginSequelize {
     return this.model(modelClass as any) as Repository<M>;
   }
 
+  getModelObject(): ModelObject {
+    const modelObject: ModelObject = this.modelManager.models.reduce((acc, model) => {
+      acc[getModelName(model.prototype)] = model;
+      return acc;
+    }, {});
+    return modelObject;
+  }
+
   private associateModels(models: ModelCtor[]): void {
+    const modelObject = this.getModelObject();
     models.forEach((model) => {
       const associations = getAssociations(model.prototype);
 
@@ -68,7 +76,7 @@ export class Sequelize extends OriginSequelize {
 
       associations.forEach((association) => {
         const options = association.getSequelizeOptions(model, this);
-        const associatedClass = this.model(association.getAssociatedClass());
+        const associatedClass = this.model(association.getAssociatedClass(modelObject));
 
         if (!associatedClass.isInitialized) {
           throw new ModelNotInitializedError(
@@ -94,20 +102,6 @@ export class Sequelize extends OriginSequelize {
       const indexArray = Object.keys(indexes.named)
         .map((key) => indexes.named[key])
         .concat(indexes.unnamed);
-
-      if (modelOptions.underscored) {
-        indexArray.forEach((index) => {
-          index.fields?.forEach((field) => {
-            const value = field.valueOf();
-            if (typeof value === 'object') {
-              field['name'] = snakeCase(value['name']);
-            } else if (typeof value === 'string') {
-              field = snakeCase(value);
-            }
-          });
-        });
-      }
-
       const initOptions: InitOptions & { modelName } = {
         ...(indexArray.length > 0 && { indexes: indexArray }),
         ...modelOptions,
