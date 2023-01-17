@@ -1,10 +1,10 @@
 import { UnionAssociationOptions } from './union-association-options';
 import { Association } from './association';
 import { ModelClassGetter } from '../../model/shared/model-class-getter';
-import { ModelType } from '../../model/model/model';
+import { ModelType, ModelObject } from '../../model/model/model';
 import { Sequelize } from '../../sequelize/sequelize/sequelize';
 
-export abstract class BaseAssociation<TCreationAttributes extends {}, TModelAttributes extends {}> {
+export abstract class BaseAssociation<TCreationAttributes, TModelAttributes> {
   constructor(
     private associatedClassGetter: ModelClassGetter<TCreationAttributes, TModelAttributes>,
     protected options: UnionAssociationOptions
@@ -16,8 +16,8 @@ export abstract class BaseAssociation<TCreationAttributes extends {}, TModelAttr
     sequelize: Sequelize
   ): UnionAssociationOptions;
 
-  getAssociatedClass(): ModelType<TCreationAttributes, TModelAttributes> {
-    return this.associatedClassGetter();
+  getAssociatedClass(models: ModelObject): ModelType<TCreationAttributes, TModelAttributes> {
+    return this.associatedClassGetter(models);
   }
 
   getAs(): string | { singular: string; plural: string } | undefined {
