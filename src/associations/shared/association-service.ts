@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { BelongsToOptions, HasOneOptions, HasManyOptions, ManyToManyOptions } from 'sequelize';
 import { BaseAssociation } from './base-association';
+import { Model, ModelObject } from '../../model/model/model';
+import { getModelName } from '../../model/shared/model-service';
 
 const ASSOCIATIONS_KEY = 'sequelize:associations';
 
@@ -28,7 +30,7 @@ export function getPreparedAssociationOptions(
 /**
  * Stores association meta data for specified class
  */
-export function addAssociation<TCreationAttributes extends {}, TModelAttributes extends {}>(
+export function addAssociation<TCreationAttributes, TModelAttributes>(
   target: any,
   association: BaseAssociation<TCreationAttributes, TModelAttributes>
 ): void {
@@ -44,7 +46,7 @@ export function addAssociation<TCreationAttributes extends {}, TModelAttributes 
 /**
  * Returns association meta data from specified class
  */
-export function getAssociations<TCreationAttributes extends {}, TModelAttributes extends {}>(
+export function getAssociations<TCreationAttributes, TModelAttributes>(
   target: any
 ): BaseAssociation<TCreationAttributes, TModelAttributes>[] | undefined {
   const associations = Reflect.getMetadata(ASSOCIATIONS_KEY, target);
@@ -53,20 +55,25 @@ export function getAssociations<TCreationAttributes extends {}, TModelAttributes
   }
 }
 
-export function setAssociations<TCreationAttributes extends {}, TModelAttributes extends {}>(
+export function setAssociations<TCreationAttributes, TModelAttributes>(
   target: any,
   associations: BaseAssociation<TCreationAttributes, TModelAttributes>[]
 ): void {
   Reflect.defineMetadata(ASSOCIATIONS_KEY, associations, target);
 }
 
-export function getAssociationsByRelation<
-  TCreationAttributes extends {},
-  TModelAttributes extends {}
->(target: any, relatedClass: any): BaseAssociation<TCreationAttributes, TModelAttributes>[] {
+export function getAssociationsByRelation<TCreationAttributes, TModelAttributes>(
+  target: any,
+  relatedClass: any
+): BaseAssociation<TCreationAttributes, TModelAttributes>[] {
   const associations = getAssociations<TCreationAttributes, TModelAttributes>(target);
   return (associations || []).filter((association) => {
-    const _relatedClass = association.getAssociatedClass();
+    
+    const modelObject: ModelObject =(relatedClass as Model).sequelize.modelManager.models.reduce((acc, model) => {
+      acc[getModelName(model.prototype)] = model;
+      return acc;
+    }, {});
+    const _relatedClass = association.getAssociatedClass(modelObject);
     return (
       _relatedClass.prototype === relatedClass.prototype ||
       relatedClass.prototype instanceof _relatedClass
