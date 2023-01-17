@@ -6,11 +6,11 @@ import { ModelClassGetter } from '../../model/shared/model-class-getter';
 import { Association } from '../shared/association';
 import { UnionAssociationOptions } from '../shared/union-association-options';
 import { ModelType } from '../../model/model/model';
-
-export class HasAssociation<
-  TCreationAttributes extends {},
-  TModelAttributes extends {}
-> extends BaseAssociation<TCreationAttributes, TModelAttributes> {
+import { Sequelize } from '../../sequelize/sequelize/sequelize';
+export class HasAssociation<TCreationAttributes, TModelAttributes> extends BaseAssociation<
+  TCreationAttributes,
+  TModelAttributes
+> {
   constructor(
     associatedClassGetter: ModelClassGetter<TCreationAttributes, TModelAttributes>,
     protected options: HasManyOptions | HasOneOptions,
@@ -24,10 +24,11 @@ export class HasAssociation<
   }
 
   getSequelizeOptions(
-    model: ModelType<TCreationAttributes, TModelAttributes>
+    model: ModelType<TCreationAttributes, TModelAttributes>,
+    sequelize: Sequelize
   ): UnionAssociationOptions {
     const options = { ...this.options };
-    const associatedClass = this.getAssociatedClass();
+    const associatedClass = this.getAssociatedClass(sequelize.getModelObject());
 
     options.foreignKey = getForeignKeyOptions(model, associatedClass, options.foreignKey);
 
